@@ -147,4 +147,18 @@ return {
 			})
 		end,
 	},
+	{
+		"github/copilot.vim",
+		lazy = false, -- pour charger au démarrage
+		config = function()
+			-- Accepter la suggestion Copilot avec Tab
+			vim.g.copilot_no_tab_map = true
+			vim.cmd([[imap <silent><script><expr> <Tab> copilot#Accept("\<CR>")]])
+			-- Désactiver Copilot sur gitcommit et markdown
+			vim.api.nvim_create_autocmd("FileType", {
+				pattern = { "gitcommit", "markdown" },
+				command = "Copilot disable",
+			})
+		end,
+	},
 }
