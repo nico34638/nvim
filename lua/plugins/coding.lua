@@ -129,7 +129,7 @@ return {
 					json = { require("formatter.filetypes.json").prettier },
 					yaml = { require("formatter.filetypes.yaml").prettier },
 					python = { require("formatter.filetypes.python").black },
-					rust = { require("formatter.filetypes.rust").rustfmt },
+					-- rust = { require("formatter.filetypes.rust").rustfmt },
 					nix = { require("formatter.filetypes.nix").nixpkgs_fmt },
 					go = { require("formatter.filetypes.go").gofmt },
 				},
@@ -149,16 +149,5 @@ return {
 	},
 	{
 		"github/copilot.vim",
-		lazy = false, -- pour charger au démarrage
-		config = function()
-			-- Accepter la suggestion Copilot avec Tab
-			vim.g.copilot_no_tab_map = true
-			vim.cmd([[imap <silent><script><expr> <Tab> copilot#Accept("\<CR>")]])
-			-- Désactiver Copilot sur gitcommit et markdown
-			vim.api.nvim_create_autocmd("FileType", {
-				pattern = { "gitcommit", "markdown" },
-				command = "Copilot disable",
-			})
-		end,
 	},
 }
