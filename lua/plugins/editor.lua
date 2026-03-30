@@ -12,6 +12,7 @@ return {
 					{ "<leader>d", group = "debugger" },
 					{ "<leader>l", group = "lsp" },
 					{ "<leader>p", group = "pdf" },
+					{ "<leader>c", group = "copilot" },
 				},
 			},
 			icons = { mappings = false },

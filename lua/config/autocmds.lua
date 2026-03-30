@@ -8,6 +8,8 @@ vim.filetype.add({
 		ll = "lex",
 		tig = "tiger",
 		tih = "tiger",
+		tfvars = "terraform-vars",
+		tofu = "terraform",
 	},
 	filename = {
 		["local.am"] = "automake",

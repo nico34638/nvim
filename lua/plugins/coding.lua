@@ -59,26 +59,30 @@ return {
 		keys = {
 			{ "<leader>s", desc = "start incremental selection" },
 		},
-		config = function()
-			require("nvim-ts-autotag").setup({
+		opts = {
+			highlight = { enable = true },
+			ensure_installed = { "c", "lua", "vim", "vimdoc", "terraform" },
+			auto_install = true,
+			indent = { enable = true },
+			incremental_selection = {
 				enable = true,
-				filetypes = { "html", "xml", "tsx" },
-			})
-
-			require("nvim-treesitter.configs").setup({
-				highlight = { enable = true },
-				ensure_installed = { "c", "lua", "vim", "vimdoc" },
-				auto_install = true,
-				indent = { enable = true },
-				incremental_selection = {
-					enable = true,
-					keymaps = {
-						init_selection = "<leader>s",
-						node_incremental = "<Space>",
-						scope_incremental = false,
-						node_decremental = "<BS>",
-					},
+				keymaps = {
+					init_selection = "<leader>s",
+					node_incremental = "<Space>",
+					scope_incremental = false,
+					node_decremental = "<BS>",
 				},
+			},
+		},
+		config = function(_, opts)
+			require("nvim-ts-autotag").setup()
+			require("nvim-treesitter").setup(opts)
+			-- Force treesitter highlight on all buffers with a known parser
+			vim.api.nvim_create_autocmd("FileType", {
+				group = vim.api.nvim_create_augroup("ts_highlight", { clear = true }),
+				callback = function(args)
+					pcall(vim.treesitter.start, args.buf)
+				end,
 			})
 		end,
 	},
@@ -132,6 +136,16 @@ return {
 					-- rust = { require("formatter.filetypes.rust").rustfmt },
 					nix = { require("formatter.filetypes.nix").nixpkgs_fmt },
 					go = { require("formatter.filetypes.go").gofmt },
+					terraform = {
+						function()
+							return { exe = "tofu", args = { "fmt", "-" }, stdin = true }
+						end,
+					},
+					["terraform-vars"] = {
+						function()
+							return { exe = "tofu", args = { "fmt", "-" }, stdin = true }
+						end,
+					},
 				},
 			})
 
@@ -149,5 +163,92 @@ return {
 	},
 	{
 		"github/copilot.vim",
+	},
+	{
+		"CopilotC-Nvim/CopilotChat.nvim",
+		dependencies = { "github/copilot.vim", "nvim-lua/plenary.nvim" },
+		cmd = { "CopilotChat", "CopilotChatOpen" },
+		keys = {
+			{ "<leader>cc", "<Cmd>CopilotChatToggle<CR>", desc = "toggle chat", mode = { "n", "x" } },
+			{
+				"<leader>ce",
+				function()
+					local input = vim.fn.input("Quick chat: ")
+					if input ~= "" then
+						require("CopilotChat").ask(input, { selection = require("CopilotChat.select").buffer })
+					end
+				end,
+				desc = "quick chat",
+			},
+			{
+				"<leader>ca",
+				function()
+					local actions = require("CopilotChat.actions")
+					require("CopilotChat.integrations.telescope").pick(actions.prompt_actions())
+				end,
+				desc = "prompt actions",
+				mode = { "n", "x" },
+			},
+			{
+				"<leader>cf",
+				function()
+					require("telescope.builtin").find_files({
+						prompt_title = "Add file to Copilot context",
+						attach_mappings = function(prompt_bufnr)
+							require("telescope.actions").select_default:replace(function()
+								local entry = require("telescope.actions.state").get_selected_entry()
+								require("telescope.actions").close(prompt_bufnr)
+								local path = entry.path or entry[1]
+								local input = vim.fn.input("Question: ")
+								if input ~= "" then
+									require("CopilotChat").ask("#file:" .. path .. "\n" .. input)
+								end
+							end)
+							return true
+						end,
+					})
+				end,
+				desc = "add file to context",
+			},
+			{
+				"<leader>cd",
+				function()
+					require("telescope.builtin").find_files({
+						prompt_title = "Add folder to Copilot context",
+						find_command = { "fd", "--type", "d", "--hidden", "--exclude", ".git" },
+						attach_mappings = function(prompt_bufnr)
+							require("telescope.actions").select_default:replace(function()
+								local entry = require("telescope.actions.state").get_selected_entry()
+								require("telescope.actions").close(prompt_bufnr)
+								local dir = entry.path or (vim.fn.getcwd() .. "/" .. entry[1])
+								local files = vim.fn.globpath(dir, "*", false, true)
+								local refs = {}
+								for _, f in ipairs(files) do
+									if vim.fn.isdirectory(f) == 0 then
+										table.insert(refs, "#file:" .. f)
+									end
+								end
+								if #refs == 0 then
+									vim.notify("No files found in " .. dir, vim.log.levels.WARN)
+									return
+								end
+								local input = vim.fn.input("Question: ")
+								if input ~= "" then
+									require("CopilotChat").ask(table.concat(refs, "\n") .. "\n" .. input)
+								end
+							end)
+							return true
+						end,
+					})
+				end,
+				desc = "add folder to context",
+			},
+		},
+		opts = {
+			window = { layout = "vertical", width = 0.35 },
+			mappings = {
+				reset = { normal = "<C-r>", insert = "<C-r>" },
+			},
+		},
 	},
 }
