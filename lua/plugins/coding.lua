@@ -61,7 +61,7 @@ return {
 		},
 		opts = {
 			highlight = { enable = true },
-			ensure_installed = { "c", "lua", "vim", "vimdoc", "terraform" },
+			ensure_installed = { "c", "lua", "vim", "vimdoc", "terraform", "gitcommit" },
 			auto_install = true,
 			indent = { enable = true },
 			incremental_selection = {
@@ -77,13 +77,6 @@ return {
 		config = function(_, opts)
 			require("nvim-ts-autotag").setup()
 			require("nvim-treesitter").setup(opts)
-			-- Force treesitter highlight on all buffers with a known parser
-			vim.api.nvim_create_autocmd("FileType", {
-				group = vim.api.nvim_create_augroup("ts_highlight", { clear = true }),
-				callback = function(args)
-					pcall(vim.treesitter.start, args.buf)
-				end,
-			})
 		end,
 	},
 	{
