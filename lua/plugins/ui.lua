@@ -81,10 +81,9 @@ return {
 				dashboard.button("e", "  > New file", "<Cmd>ene<CR>"),
 				dashboard.button("f", "  > Find file", "<Cmd>Telescope find_files<CR>"),
 				dashboard.button("r", "  > Find word", "<Cmd>Telescope live_grep<CR>"),
-				dashboard.button("t", "פּ  > File explorer", "<Cmd>NvimTreeOpen<CR>"),
+				dashboard.button("t", "\u{f07c}  > File explorer", "<Cmd>NvimTreeOpen<CR>"),
 				dashboard.button("s", "  > Settings", "<Cmd>e $MYVIMRC | cd %:p:h<CR>"),
 				dashboard.button("u", "  > Update plugins", "<Cmd>Lazy update<CR>"),
-				dashboard.button("g", "  > Neogit", "<Cmd>Neogit<CR>"),
 				dashboard.button("q", "  > Quit NVIM", "<Cmd>qa<CR>"),
 			}
 

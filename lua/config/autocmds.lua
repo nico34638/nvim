@@ -35,7 +35,7 @@ vim.api.nvim_create_autocmd("FileType", {
 vim.api.nvim_create_autocmd("TextYankPost", {
 	group = augroup("highlight_yank"),
 	callback = function()
-		vim.highlight.on_yank({ higroup = "Visual", on_visual = false })
+		vim.hl.on_yank({ higroup = "Visual", on_visual = false })
 	end,
 })
 
@@ -50,16 +50,6 @@ vim.api.nvim_create_autocmd("VimResized", {
 		local current_tab = vim.api.nvim_get_current_tabpage()
 		vim.cmd("tabdo wincmd =")
 		vim.api.nvim_set_current_tabpage(current_tab)
-	end,
-})
-
-vim.api.nvim_create_autocmd({ "BufLeave", "FocusLost", "InsertEnter", "WinLeave", "CmdlineEnter" }, {
-	group = augroup("toggle_relative_number"),
-	callback = function(ev)
-		vim.opt.relativenumber = false
-		if ev.event == "CmdlineEnter" then
-			vim.cmd("redraw")
-		end
 	end,
 })
 

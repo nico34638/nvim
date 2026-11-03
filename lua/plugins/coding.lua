@@ -32,7 +32,6 @@ return {
 					},
 				},
 			},
-			appearance = { use_nvim_cmp_as_default = false },
 			signature = { enabled = true },
 			completion = {
 				list = {
@@ -50,33 +49,54 @@ return {
 	},
 	{
 		"nvim-treesitter/nvim-treesitter",
+		branch = "main",
 		build = ":TSUpdate",
+		-- The main branch does not support lazy-loading
 		lazy = false,
 		dependencies = {
 			"windwp/nvim-ts-autotag",
 		},
-		event = { "BufReadPre", "BufNewFile" },
-		keys = {
-			{ "<leader>s", desc = "start incremental selection" },
-		},
-		opts = {
-			highlight = { enable = true },
-			ensure_installed = { "c", "lua", "vim", "vimdoc", "terraform", "gitcommit" },
-			auto_install = true,
-			indent = { enable = true },
-			incremental_selection = {
-				enable = true,
-				keymaps = {
-					init_selection = "<leader>s",
-					node_incremental = "<Space>",
-					scope_incremental = false,
-					node_decremental = "<BS>",
-				},
-			},
-		},
-		config = function(_, opts)
+		-- Incremental selection is native since 0.12: `an` / `in` in visual mode, `[n` / `]n`
+		config = function()
 			require("nvim-ts-autotag").setup()
-			require("nvim-treesitter").setup(opts)
+
+			local ts = require("nvim-treesitter")
+			-- No-op when already installed
+			ts.install({ "c", "lua", "vim", "vimdoc", "terraform", "yaml" })
+
+			local function attach(buf, lang)
+				if not pcall(vim.treesitter.start, buf, lang) then
+					return false
+				end
+				vim.bo[buf].indentexpr = "v:lua.require'nvim-treesitter'.indentexpr()"
+				return true
+			end
+
+			-- The main branch has no highlight/indent/auto_install modules: done by hand per buffer
+			local no_ts_ft = { gitcommit = true, gitrebase = true, help = true }
+			vim.api.nvim_create_autocmd("FileType", {
+				group = vim.api.nvim_create_augroup("my_treesitter", { clear = true }),
+				callback = function(args)
+					local buf, ft = args.buf, vim.bo[args.buf].filetype
+					if no_ts_ft[ft] then
+						return
+					end
+					local lang = vim.treesitter.language.get_lang(ft)
+					if not lang or attach(buf, lang) then
+						return
+					end
+					-- auto_install: parser missing but available upstream
+					if vim.tbl_contains(ts.get_available(), lang) then
+						ts.install(lang):await(function()
+							vim.schedule(function()
+								if vim.api.nvim_buf_is_valid(buf) then
+									attach(buf, lang)
+								end
+							end)
+						end)
+					end
+				end,
+			})
 		end,
 	},
 	{
@@ -154,94 +174,50 @@ return {
 			})
 		end,
 	},
-	{
-		"github/copilot.vim",
-	},
-	{
-		"CopilotC-Nvim/CopilotChat.nvim",
-		dependencies = { "github/copilot.vim", "nvim-lua/plenary.nvim" },
-		cmd = { "CopilotChat", "CopilotChatOpen" },
-		keys = {
-			{ "<leader>cc", "<Cmd>CopilotChatToggle<CR>", desc = "toggle chat", mode = { "n", "x" } },
-			{
-				"<leader>ce",
-				function()
-					local input = vim.fn.input("Quick chat: ")
-					if input ~= "" then
-						require("CopilotChat").ask(input, { selection = require("CopilotChat.select").buffer })
-					end
-				end,
-				desc = "quick chat",
-			},
-			{
-				"<leader>ca",
-				function()
-					local actions = require("CopilotChat.actions")
-					require("CopilotChat.integrations.telescope").pick(actions.prompt_actions())
-				end,
-				desc = "prompt actions",
-				mode = { "n", "x" },
-			},
-			{
-				"<leader>cf",
-				function()
-					require("telescope.builtin").find_files({
-						prompt_title = "Add file to Copilot context",
-						attach_mappings = function(prompt_bufnr)
-							require("telescope.actions").select_default:replace(function()
-								local entry = require("telescope.actions.state").get_selected_entry()
-								require("telescope.actions").close(prompt_bufnr)
-								local path = entry.path or entry[1]
-								local input = vim.fn.input("Question: ")
-								if input ~= "" then
-									require("CopilotChat").ask("#file:" .. path .. "\n" .. input)
-								end
-							end)
-							return true
-						end,
-					})
-				end,
-				desc = "add file to context",
-			},
-			{
-				"<leader>cd",
-				function()
-					require("telescope.builtin").find_files({
-						prompt_title = "Add folder to Copilot context",
-						find_command = { "fd", "--type", "d", "--hidden", "--exclude", ".git" },
-						attach_mappings = function(prompt_bufnr)
-							require("telescope.actions").select_default:replace(function()
-								local entry = require("telescope.actions.state").get_selected_entry()
-								require("telescope.actions").close(prompt_bufnr)
-								local dir = entry.path or (vim.fn.getcwd() .. "/" .. entry[1])
-								local files = vim.fn.globpath(dir, "*", false, true)
-								local refs = {}
-								for _, f in ipairs(files) do
-									if vim.fn.isdirectory(f) == 0 then
-										table.insert(refs, "#file:" .. f)
-									end
-								end
-								if #refs == 0 then
-									vim.notify("No files found in " .. dir, vim.log.levels.WARN)
-									return
-								end
-								local input = vim.fn.input("Question: ")
-								if input ~= "" then
-									require("CopilotChat").ask(table.concat(refs, "\n") .. "\n" .. input)
-								end
-							end)
-							return true
-						end,
-					})
-				end,
-				desc = "add folder to context",
-			},
-		},
-		opts = {
-			window = { layout = "vertical", width = 0.35 },
-			mappings = {
-				reset = { normal = "<C-r>", insert = "<C-r>" },
-			},
-		},
-	},
+        {
+  "pwntester/octo.nvim",
+  cmd = "Octo",
+  opts = {
+    -- or "fzf-lua" or "snacks" or "default"
+    picker = "telescope",
+    -- bare Octo command opens picker of commands
+    enable_builtin = true,
+  },
+  keys = {
+    {
+      "<leader>gi",
+      "<CMD>Octo issue list<CR>",
+      desc = "List GitHub Issues",
+    },
+    {
+      "<leader>gp",
+      "<CMD>Octo pr list<CR>",
+      desc = "List GitHub PullRequests",
+    },
+    {
+      "<leader>gd",
+      "<CMD>Octo discussion list<CR>",
+      desc = "List GitHub Discussions",
+    },
+    {
+      "<leader>gn",
+      "<CMD>Octo notification list<CR>",
+      desc = "List GitHub Notifications",
+    },
+    {
+      "<leader>gs",
+      function()
+        require("octo.utils").create_base_search_command { include_current_repo = true }
+      end,
+      desc = "Search GitHub",
+    },
+  },
+  dependencies = {
+    "nvim-lua/plenary.nvim",
+    "nvim-telescope/telescope.nvim",
+    -- OR "ibhagwan/fzf-lua",
+    -- OR "folke/snacks.nvim",
+    "nvim-tree/nvim-web-devicons", -- optional if file_panel.icons is a function
+  },
+}
 }

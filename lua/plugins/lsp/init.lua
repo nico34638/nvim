@@ -28,6 +28,7 @@ return {
 
 		vim.diagnostic.config({ severity_sort = true })
 
+		vim.lsp.log.set_level("WARN")
 
 		vim.api.nvim_create_autocmd("LspAttach", {
 			group = vim.api.nvim_create_augroup("custom_lsp", { clear = true }),
@@ -63,8 +64,23 @@ return {
 			phpactor = {},
 			helm_ls = {},
 			ts_ls = {},
-			terraformls = {
+			puppet = {},
+			-- OpenTofu fork of terraform-ls: understands registry.opentofu.org providers,
+			-- so provider schemas (and thus go-to-definition in resource/data/provider blocks) work.
+			-- Also free of terraform-ls#2108 (negative semantic token deltas hanging nvim).
+			tofu_ls = {
+				-- The server writes its debug log to stderr, which nvim records at ERROR level
+				-- in lsp.log regardless of vim.lsp.log level (~1 GB). Send it elsewhere.
+				cmd = { "tofu-ls", "serve", "-log-file=/dev/null" },
 				filetypes = { "terraform", "terraform-vars" },
+				-- Limit root to the init'd module, not the whole monorepo
+				root_markers = { ".terraform", ".terraform.lock.hcl" },
+				-- On macOS nvim watches one handle per directory: on the monorepo (~2800 dirs)
+				-- that hits EMFILE. Buffers still sync via didChange/didSave; run :lsp restart
+				-- after out-of-editor changes (git checkout, tofu init).
+				capabilities = {
+					workspace = { didChangeWatchedFiles = { dynamicRegistration = false } },
+				},
 			},
 		}
 

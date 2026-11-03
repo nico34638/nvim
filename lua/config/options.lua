@@ -37,9 +37,10 @@ vim.opt.wrap = false
 -- Miscellaneous --
 vim.opt.mouse = "a"
 vim.opt.clipboard = "unnamedplus"
-vim.opt.updatetime = 300
+vim.opt.updatetime = 800
 vim.opt.timeoutlen = 300
 vim.opt.tildeop = true
+vim.opt.winborder = "rounded"
 
 vim.diagnostic.config({
     virtual_text = true,

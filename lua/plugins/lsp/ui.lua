@@ -3,33 +3,19 @@ local M = {}
 function M.setup()
 	-- Signs
 	local signs = { Error = "", Warn = "", Hint = "", Info = "" }
+	local text, numhl = {}, {}
 	for type, icon in pairs(signs) do
-		local hl = "DiagnosticSign" .. type
-		vim.fn.sign_define(hl, { text = icon, texthl = hl, numhl = hl })
+		local severity = vim.diagnostic.severity[type:upper()]
+		text[severity] = icon
+		numhl[severity] = "DiagnosticSign" .. type
 	end
-
-	-- Floating window borders
-	local border = {
-		{ "╭", "FloatBorder" },
-		{ "─", "FloatBorder" },
-		{ "╮", "FloatBorder" },
-		{ "│", "FloatBorder" },
-		{ "╯", "FloatBorder" },
-		{ "─", "FloatBorder" },
-		{ "╰", "FloatBorder" },
-		{ "│", "FloatBorder" },
-	}
-	local orig_util_open_floating_preview = vim.lsp.util.open_floating_preview
-	function vim.lsp.util.open_floating_preview(contents, syntax, opts, ...)
-		opts = opts or {}
-		opts.border = opts.border or border
-		return orig_util_open_floating_preview(contents, syntax, opts, ...)
-	end
+	vim.diagnostic.config({ signs = { text = text, numhl = numhl } })
 end
 
 function M.on_attach(client, bufnr)
-	-- Highlight references
-	if client.server_capabilities.documentHighlightProvider then
+	-- Highlight references - skip for slow/chatty LSPs (e.g. tofu-ls)
+	local slow_clients = { tofu_ls = true }
+	if client.server_capabilities.documentHighlightProvider and not slow_clients[client.name] then
 		vim.api.nvim_create_augroup("lsp_document_highlight", {
 			clear = false,
 		})
