@@ -62,7 +62,7 @@ return {
 
 			local ts = require("nvim-treesitter")
 			-- No-op when already installed
-			ts.install({ "c", "lua", "vim", "vimdoc", "terraform", "yaml" })
+			ts.install({ "c", "lua", "vim", "vimdoc", "terraform", "yaml", "markdown", "markdown_inline" })
 
 			local function attach(buf, lang)
 				if not pcall(vim.treesitter.start, buf, lang) then

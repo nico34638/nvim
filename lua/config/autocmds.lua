@@ -27,8 +27,6 @@ vim.api.nvim_create_autocmd("FileType", {
 	pattern = "markdown",
 	callback = function()
 		vim.opt_local.textwidth = 80
-		vim.keymap.set("n", "<leader>mp", "<Cmd>silent !pandoc % -o %:r.pdf<CR>", { desc = "to pdf", buffer = 0 })
-		vim.keymap.set("n", "<leader>mv", "<Cmd>silent !zathura %:r.pdf &<CR>", { desc = "visualize", buffer = 0 })
 	end,
 })
 
